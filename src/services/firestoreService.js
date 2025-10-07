@@ -1,6 +1,17 @@
+// src/services/firestoreService.js
 import { db, auth } from '../config/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, doc, setDoc, updateDoc, serverTimestamp, runTransaction, deleteDoc, getDoc, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  runTransaction,
+  deleteDoc,
+  getDoc,
+  addDoc
+} from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 const getProductsCollectionRef = () => {
@@ -41,30 +52,45 @@ export const uploadStoreLogo = async (file) => {
   return downloadURL;
 };
 
+/**
+ * Crea el producto usando el ID proporcionado desde el formulario.
+ * productData debe contener: { id, name, almacen, stock, price }
+ */
 export const addProduct = async (productData) => {
-  
-  await addDoc(getProductsCollectionRef, {
-    name: productData.name,
-    almacen: productData.almacen,
-    stock: Number(productData.stock),
-    price: Number(productData.price),
+  if (!productData?.id) {
+    throw new Error("Falta el ID del producto en productData.id");
+  }
+
+  const productRef = doc(getProductsCollectionRef(), String(productData.id).trim());
+
+  await setDoc(productRef, {
+    name: String(productData.name || '').trim(),
+    almacen: String(productData.almacen || '').trim(),
+    stock: Number(productData.stock ?? 0),
+    price: Number(productData.price ?? 0),
     createdAt: serverTimestamp(),
-  });
+  }, { merge: false });
+
+  // (Opcional) feedback al usuario
+  toast.success('Producto agregado');
+  return productRef.id;
 };
 
 export const updateProduct = async (productId, productData) => {
   const productRef = doc(getProductsCollectionRef(), productId);
   await updateDoc(productRef, {
-    name: productData.name,
-    almacen: productData.almacen,
-    stock: Number(productData.stock),
-    price: Number(productData.price),
+    name: String(productData.name || '').trim(),
+    almacen: String(productData.almacen || '').trim(),
+    stock: Number(productData.stock ?? 0),
+    price: Number(productData.price ?? 0),
   });
+  toast.success('Producto actualizado');
 };
 
 export const deleteProduct = async (productId) => {
   const productRef = doc(getProductsCollectionRef(), productId);
   await deleteDoc(productRef);
+  toast.success('Producto eliminado');
 };
 
 export const updateStockAfterSale = async (itemsInCart) => {
@@ -73,10 +99,14 @@ export const updateStockAfterSale = async (itemsInCart) => {
     for (const item of itemsInCart) {
       const productRef = doc(productsRef, item.id);
       const productDoc = await transaction.get(productRef);
-      if (!productDoc.exists()) throw new Error(`El producto ${item.name} no fue encontrado.`);
-      const currentStock = productDoc.data().stock;
-      const newStock = currentStock - item.quantity;
-      if (newStock < 0) throw new Error(`Stock insuficiente para ${item.name}.`);
+      if (!productDoc.exists()) {
+        throw new Error(`El producto ${item.name} no fue encontrado.`);
+      }
+      const currentStock = Number(productDoc.data().stock ?? 0);
+      const newStock = currentStock - Number(item.quantity ?? 0);
+      if (newStock < 0) {
+        throw new Error(`Stock insuficiente para ${item.name}.`);
+      }
       transaction.update(productRef, { stock: newStock });
     }
   });
@@ -86,5 +116,10 @@ export const recordSale = async (saleData) => {
   const user = auth.currentUser;
   if (!user) throw new Error("Usuario no autenticado.");
   const salesCollectionRef = collection(db, 'users', user.uid, 'sales');
-  await addDoc(salesCollectionRef, { ...saleData, createdAt: serverTimestamp(), userId: user.uid });
+  await addDoc(salesCollectionRef, {
+    ...saleData,
+    createdAt: serverTimestamp(),
+    userId: user.uid
+  });
+  toast.success('Venta registrada');
 };

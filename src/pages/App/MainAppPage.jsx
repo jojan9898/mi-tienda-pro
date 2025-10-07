@@ -51,7 +51,7 @@ const MainAppPage = () => {
 
     toast.promise(promise, {
       loading: editingProduct ? 'Actualizando...' : 'Añadiendo...',
-      success: () => {
+      success: (result) => {
         setProductModalOpen(false);
         return editingProduct ? 'Producto actualizado.' : 'Producto añadido.';
       },
@@ -95,6 +95,7 @@ const MainAppPage = () => {
         <ProductForm 
           onSave={handleSaveProduct} 
           product={editingProduct} 
+          onClose={() => setProductModalOpen(false)}
         />
       </Modal>
       

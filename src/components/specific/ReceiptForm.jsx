@@ -47,7 +47,7 @@ const ReceiptForm = ({ onClose }) => {
   const receiptData = { docType, customerId, items, total };
 
   return (
-    <div className="space-y-4">
+    <div className="bg-panel p-6 rounded-lg space-y-4">
       {!saleCompleted ? (
         <>
           <select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full p-3 bg-card rounded-lg text-text-primary">

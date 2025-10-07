@@ -1,35 +1,28 @@
-export default function Modal({ isOpen, onClose, title, children }) {
+import React from 'react';
+import { X } from 'lucide-react';
+
+const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      aria-modal="true"
-      role="dialog"
-    >
-      {/* Fondo */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-
-      {/* Panel */}
-      <div
-        className="relative z-10 w-full max-w-lg bg-white rounded-xl shadow-lg p-6"
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      {/* Panel del Modal con estilos oscuros */}
+      <div className="relative z-10 w-full max-w-lg bg-panel rounded-xl shadow-lg p-6 text-text-primary">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="px-2 py-1 rounded border"
+            className="p-1 rounded-full hover:bg-card-hover"
             aria-label="Cerrar"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
         <div>{children}</div>
       </div>
     </div>
   );
-}
+};
+
+export default Modal;

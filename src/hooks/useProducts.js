@@ -1,32 +1,34 @@
-const KEY = "mi_tienda_products";
+// Ruta: src/hooks/useProducts.js
 
-function readLocal() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+import { useState, useEffect } from 'react';
+import { db, auth } from '../config/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useAuth } from './useAuth';
 
-function writeLocal(data) {
-  localStorage.setItem(KEY, JSON.stringify(data));
-}
+export const useProducts = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-export function useProducts() {
-  const listProducts = async () => {
-    return readLocal();
-  };
+  useEffect(() => {
+    if (!user) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
 
-  const addProduct = async (product) => {
-    const curr = readLocal();
-    curr.push(product);
-    writeLocal(curr);
-    return true; // ✅ importante: devolver una promesa resuelta
-  };
+    const productsCollectionRef = collection(db, 'users', user.uid, 'products');
+    const q = query(productsCollectionRef, orderBy('createdAt', 'desc'));
 
-  return {
-    listProducts,
-    addProduct,
-  };
-}
+    // onSnapshot nos da la lista en tiempo real. No necesitamos 'reloadProducts'.
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(productsData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  return { products, loading };
+};
