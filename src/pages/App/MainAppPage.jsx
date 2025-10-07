@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import ProductList from '../../components/specific/ProductList';
 import CartPanel from '../../components/specific/CartPanel';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import ProductForm from '../../components/specific/ProductForm';
+import StoreSetupModal from '../../components/specific/StoreSetupModal';
 import ReceiptForm from '../../components/specific/ReceiptForm';
+import toast from 'react-hot-toast';
 import { addProduct, updateProduct, deleteProduct } from '../../services/firestoreService';
 import { Plus } from 'lucide-react';
-import toast from 'react-hot-toast';
+import useUserStore from '../../store/userStore';
 
 const MainAppPage = () => {
   const [isProductModalOpen, setProductModalOpen] = useState(false);
@@ -16,43 +18,45 @@ const MainAppPage = () => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  const { isProfileLoaded, storeName } = useUserStore();
+  const [isSetupModalOpen, setSetupModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (isProfileLoaded && (storeName === 'Mi Tienda PRO')) {
+      setSetupModalOpen(true);
+    }
+  }, [isProfileLoaded, storeName]);
 
   const handleOpenAddModal = () => { setEditingProduct(null); setProductModalOpen(true); };
   const handleOpenEditModal = (product) => { setEditingProduct(product); setProductModalOpen(true); };
   const handleOpenDeleteModal = (product) => { setProductToDelete(product); setConfirmModalOpen(true); };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!productToDelete) return;
-    const toastId = toast.loading('Eliminando...');
-    try {
-      await deleteProduct(productToDelete.id);
-      toast.success(`"${productToDelete.name}" eliminado.`, { id: toastId });
-    } catch (error) {
-      toast.error("No se pudo eliminar.", { id: toastId });
-    } finally {
-      setConfirmModalOpen(false);
-      setProductToDelete(null);
-    }
+    const promise = deleteProduct(productToDelete.id);
+    toast.promise(promise, {
+      loading: 'Eliminando...',
+      success: `"${productToDelete.name}" eliminado.`,
+      error: 'No se pudo eliminar.',
+    });
+    setConfirmModalOpen(false);
+    setProductToDelete(null);
   };
   
-  const handleSaveProduct = async (productData) => {
-    setLoading(true);
-    const toastId = toast.loading(editingProduct ? 'Actualizando...' : 'Guardando...');
-    try {
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, productData);
-        toast.success('Producto actualizado', { id: toastId });
-      } else {
-        await addProduct(productData);
-        toast.success('Producto añadido', { id: toastId });
-      }
-      setProductModalOpen(false);
-    } catch (error) {
-      toast.error(error.message, { id: toastId });
-    } finally {
-      setLoading(false);
-    }
+  const handleSaveProduct = (productData) => {
+    const promise = editingProduct
+      ? updateProduct(editingProduct.id, productData)
+      : addProduct(productData);
+
+    toast.promise(promise, {
+      loading: editingProduct ? 'Actualizando...' : 'Añadiendo...',
+      success: () => {
+        setProductModalOpen(false);
+        return editingProduct ? 'Producto actualizado.' : 'Producto añadido.';
+      },
+      error: 'Ocurrió un error al guardar.',
+    });
   };
 
   return (
@@ -66,7 +70,7 @@ const MainAppPage = () => {
           <div className="pt-4 flex justify-end">
             <button 
               onClick={handleOpenAddModal} 
-              className="w-auto flex items-center gap-2 bg-primary hover:bg-primary-dark text-black font-bold py-2 px-5 rounded-lg transition-colors"
+              className="w-auto flex items-center gap-2 bg-primary-gradient hover:bg-primary-gradient-hover text-black font-bold py-2 px-5 rounded-lg transition-colors"
             >
               <Plus size={20} />
               Añadir
@@ -81,21 +85,30 @@ const MainAppPage = () => {
         </div>
       </div>
 
-      {isProductModalOpen && (
-        <Modal isOpen={isProductModalOpen} onClose={() => setProductModalOpen(false)} title={editingProduct ? 'Editar Producto' : 'Añadir Producto'}>
-          <ProductForm onSave={handleSaveProduct} product={editingProduct} loading={loading} />
-        </Modal>
-      )}
-      {isReceiptModalOpen && (
-        <Modal isOpen={isReceiptModalOpen} onClose={() => setReceiptModalOpen(false)} title="Emitir Comprobante">
-          <ReceiptForm />
-        </Modal>
-      )}
-      {isConfirmModalOpen && (
-        <Modal isOpen={isConfirmModalOpen} onClose={() => setConfirmModalOpen(false)} title="Confirmar Eliminación">
-          <ConfirmModal onConfirm={handleConfirmDelete} message={`¿Estás seguro de que quieres eliminar "${productToDelete?.name}"?`} />
-        </Modal>
-      )}
+      <StoreSetupModal isOpen={isSetupModalOpen} onClose={() => setSetupModalOpen(false)} />
+      
+      <Modal 
+        isOpen={isProductModalOpen} 
+        onClose={() => setProductModalOpen(false)} 
+        title={editingProduct ? 'Editar Producto' : 'Añadir Producto'}
+      >
+        <ProductForm 
+          onSave={handleSaveProduct} 
+          product={editingProduct} 
+        />
+      </Modal>
+      
+      <Modal isOpen={isReceiptModalOpen} onClose={() => setReceiptModalOpen(false)} title="Emitir Comprobante">
+        <ReceiptForm onClose={() => setReceiptModalOpen(false)} />
+      </Modal>
+      
+      <Modal isOpen={isConfirmModalOpen} onClose={() => setConfirmModalOpen(false)} title="Confirmar Eliminación">
+        <ConfirmModal 
+          onConfirm={handleConfirmDelete} 
+          onClose={() => setConfirmModalOpen(false)}
+          message={`¿Estás seguro de que quieres eliminar "${productToDelete?.name}"?`}
+        />
+      </Modal>
     </Layout>
   );
 };

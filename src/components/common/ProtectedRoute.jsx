@@ -19,4 +19,6 @@ const ProtectedRoute = ({ children }) => {
 
   return children;
 };
+
+// --- LA LÍNEA FALTANTE Y CRUCIAL ---
 export default ProtectedRoute;

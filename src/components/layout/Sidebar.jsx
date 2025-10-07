@@ -5,11 +5,12 @@ import { auth } from '../../config/firebase';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
-import useUserStore from '../../store/userStore';
 
+// Por ahora, el nombre de la tienda y el logo son fijos. Los haremos dinámicos más adelante.
 const Sidebar = () => {
   const { user } = useAuth();
-  const { storeName, logoUrl } = useUserStore();
+  const storeName = "Mi Tienda PRO"; // Placeholder
+
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { name: 'Reportes', icon: Package, path: '/reports' },
@@ -28,9 +29,9 @@ const Sidebar = () => {
       <div>
         <div className="flex items-center gap-3 mb-12">
           <div className="w-12 h-12 bg-card rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden">
-            {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : (storeName && <span className="text-xl font-bold text-primary">{storeName.charAt(0)}</span>)}
+            <span className="text-xl font-bold text-primary">{storeName.charAt(0)}</span>
           </div>
-          <div className="text-white text-2xl font-display font-extrabold truncate">{storeName || 'Cargando...'}</div>
+          <div className="text-white text-2xl font-display font-extrabold truncate">{storeName}</div>
         </div>
         <nav>
           <ul>
