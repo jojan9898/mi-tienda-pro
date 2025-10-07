@@ -112,4 +112,5 @@ const MainAppPage = () => {
     </Layout>
   );
 };
+
 export default MainAppPage;

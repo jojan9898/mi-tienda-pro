@@ -42,7 +42,7 @@ export const uploadStoreLogo = async (file) => {
 };
 
 export const addProduct = async (productData) => {
-  const productRef = doc(getProductsCollectionRef(), productData.id);
+  
   await addDoc(getProductsCollectionRef, {
     name: productData.name,
     almacen: productData.almacen,

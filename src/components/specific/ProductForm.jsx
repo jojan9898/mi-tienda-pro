@@ -1,114 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { useProducts } from "../../hooks/useProducts";
 
-const ProductForm = ({ onSave, product }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    almacen: '1',
-    stock: '',
-    price: '',
+export default function ProductForm({ onClose, onSaved }) {
+  const { addProduct } = useProducts();
+  const [form, setForm] = useState({
+    nombre: "",
+    precio: "",
+    stock: "",
+    sku: "",
   });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (product) {
-      setFormData({
-        id: product.id,
-        name: product.name || '',
-        almacen: product.almacen || '1',
-        stock: product.stock || '',
-        price: product.price || '',
-      });
-    } else {
-      // Limpiamos el formulario para un nuevo producto
-      setFormData({ name: '', almacen: '1', stock: '', price: '' });
-    }
-  }, [product]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Validamos que los campos no estén vacíos antes de enviar
-    if (!formData.name.trim() || !formData.stock || !formData.price) {
-      return toast.error("Por favor, completa todos los campos.");
+    e.preventDefault();                // ✅ evita submit nativo/recarga
+    setError("");
+
+    if (!form.nombre || !form.precio) {
+      setError("Completa al menos nombre y precio.");
+      return;
     }
-    setLoading(true);
-    await onSave(formData);
-    setLoading(false);
+
+    try {
+      setSaving(true);
+      await addProduct({
+        ...form,
+        precio: Number(form.precio),
+        stock: Number(form.stock || 0),
+        createdAt: Date.now(),
+      });
+      onSaved?.();                     // refresca lista en el padre
+      onClose?.();                     // cierra modal
+    } catch (err) {
+      console.error(err);
+      setError("Ocurrió un error al guardar el producto.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Mostramos el ID solo si estamos en modo de edición */}
-      {product && (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div>
+        <label className="block text-sm">Nombre</label>
+        <input
+          name="nombre"
+          value={form.nombre}
+          onChange={handleChange}
+          className="w-full border rounded p-2"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium text-text-secondary">ID del Producto</label>
+          <label className="block text-sm">Precio</label>
           <input
-            type="text"
-            value={formData.id}
-            disabled
-            className="w-full p-3 mt-1 bg-card rounded-lg text-text-secondary cursor-not-allowed"
+            name="precio"
+            type="number"
+            step="0.01"
+            value={form.precio}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
           />
         </div>
-      )}
-      <input
-        type="text"
-        name="name"
-        value={formData.name}
-        onChange={handleChange}
-        placeholder="Nombre del producto"
-        className="w-full p-3 bg-card rounded-lg text-text-primary"
-        required
-        autoFocus
-      />
-      <div>
-        <label className="text-sm font-medium text-text-secondary">Almacén</label>
-        <div className="flex gap-2 mt-1">
-          {['1', '2', '3', '4', '5'].map(num => (
-            <button
-              type="button"
-              key={num}
-              onClick={() => setFormData(prev => ({ ...prev, almacen: num }))}
-              className={`w-full p-2 rounded-lg font-bold transition-colors ${formData.almacen === num ? 'bg-primary text-black' : 'bg-card text-text-primary hover:bg-card-hover'}`}
-            >
-              {num}
-            </button>
-          ))}
+        <div>
+          <label className="block text-sm">Stock</label>
+          <input
+            name="stock"
+            type="number"
+            value={form.stock}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+          />
         </div>
       </div>
-      <input
-        type="number"
-        name="stock"
-        value={formData.stock}
-        onChange={handleChange}
-        placeholder="Stock"
-        className="w-full p-3 bg-card rounded-lg text-text-primary"
-        required
-      />
-      <input
-        type="number"
-        step="0.01"
-        name="price"
-        value={formData.price}
-        onChange={handleChange}
-        placeholder="Precio (S/.)"
-        className="w-full p-3 bg-card rounded-lg text-text-primary"
-        required
-      />
-      {/* ¡El campo para ingresar un nuevo ID ha sido eliminado! */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full p-3 bg-primary-gradient hover:bg-primary-gradient-hover text-black font-bold rounded-lg transition-colors disabled:opacity-50"
-      >
-        {loading ? 'Guardando...' : 'Guardar Producto'}
-      </button>
+
+      <div>
+        <label className="block text-sm">SKU</label>
+        <input
+          name="sku"
+          value={form.sku}
+          onChange={handleChange}
+          className="w-full border rounded p-2"
+        />
+      </div>
+
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <button type="button" onClick={onClose} className="px-4 py-2 rounded border">
+          Cancelar
+        </button>
+        <button
+          type="submit"                 // ✅ submit
+          disabled={saving}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-60"
+        >
+          {saving ? "Guardando..." : "Agrego producto"}
+        </button>
+      </div>
     </form>
   );
-};
-
-export default ProductForm;
+}
