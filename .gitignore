@@ -1,0 +1,6 @@
+# Dependencias
+/node_modules
+
+# Archivos de build y caché
+/dist
+.vite
